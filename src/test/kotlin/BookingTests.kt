@@ -55,6 +55,40 @@ class BookingRepository_AvailableRoomsTest {
     }
 }
 
+class BookARoomCommandTest {
+    val someDate = LocalDate.now().plusDays(1)
+
+    @Test
+    fun `if a booking command is successful,then the room is booked`() {
+        val theRooms = listOf(Room(101, RoomType.Single))
+        var repo = InMemoryBookingRepository(theRooms)
+
+        val command = BookARoomCommand(repo)
+        command.execute(someDate)
+        assertThat(repo.availableRooms(someDate), equalTo(AvailableRooms()))
+    }
+
+    @Test
+    fun `if booking command fails, then available rooms stays the same`() {
+        val theRooms = listOf(Room(101, RoomType.Single))
+        var repo = InMemoryBookingRepository(theRooms)
+        val command = BookARoomCommand(repo)
+        command.execute(someDate)
+        command.execute(someDate)
+        assertThat(repo.availableRooms(someDate), equalTo(AvailableRooms()))
+    }
+}
+
+class BookARoomCommand(val repo: BookingRepository) {
+    fun execute(someDate: LocalDate) {
+        val availableRooms = repo.availableRooms(someDate)
+        availableRooms.book(someDate).map {
+            repo.save(it)
+        }
+    }
+
+}
+
 
 interface BookingRepository {
     fun availableRooms(someDate: LocalDate): AvailableRooms
