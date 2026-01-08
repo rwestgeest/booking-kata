@@ -32,6 +32,58 @@ class BookingTests {
     }
 }
 
+class BookingRepository_AvailableRoomsTest {
+    val someDate = LocalDate.now().plusDays(1)
+    val theRooms = listOf(Room(101, RoomType.Single), Room(102, RoomType.Twin))
+    var repo = InMemoryBookingRepository(theRooms)
+
+    @Test
+    fun `contains all room by default`() {
+        assertThat(repo.availableRooms(someDate), equalTo(AvailableRooms(theRooms)))
+    }
+
+    @Test
+    fun `if a booking is done for a room, it is no longer available (but the other rooms are)`() {
+        repo.save(RoomWasBooked(theRooms.first(), someDate))
+        assertThat(repo.availableRooms(someDate), equalTo(AvailableRooms(listOf(theRooms.last()))))
+    }
+
+    @Test
+    fun `if a booking is done the room is still available on a different date`() {
+        repo.save(RoomWasBooked(theRooms.first(), someDate))
+        assertThat(repo.availableRooms(someDate.plusDays(1)), equalTo(AvailableRooms(theRooms)))
+    }
+}
+
+
+interface BookingRepository {
+    fun availableRooms(someDate: LocalDate): AvailableRooms
+    fun save(roomWasBooked: RoomWasBooked)
+}
+
+data class InMemoryBookingRepository(val theRooms: List<Room>) : BookingRepository {
+    val bookings = mutableListOf<RoomWasBooked>()
+
+    override fun availableRooms(someDate: LocalDate): AvailableRooms {
+        val availableRooms = theRooms.filter { it.roomNumber !in bookedRoomNumbersAt(someDate) }
+        return AvailableRooms(availableRooms)
+    }
+
+    private fun bookedRoomNumbersAt(someDate: LocalDate): List<Int> {
+        return bookingsAt(someDate).map { it.theRoom.roomNumber }
+    }
+
+    private fun bookingsAt(someDate: LocalDate): List<RoomWasBooked> {
+        return bookings.filter { it.bookingDate == someDate }
+    }
+
+    override fun save(roomWasBooked: RoomWasBooked) {
+        bookings.add(roomWasBooked)
+    }
+}
+
+
+
 data class BookingError(val message: String)
 
 data class RoomWasBooked(val theRoom: Room, val bookingDate: LocalDate)
