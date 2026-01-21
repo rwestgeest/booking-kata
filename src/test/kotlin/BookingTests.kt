@@ -101,7 +101,15 @@ class OccupationTest {
         assertThat(occupation.checkin(jim, room), equalTo(PersonWasCheckIn(jim,room).asSuccess()))
     }
 
-    
+    @Test
+    fun `person can not be checked in single room when room is already occupied`() {
+        val nielsen = Person("Nielsen")
+        val donald = Person("Donald")
+        val greenroom = Room(1, RoomType.Single)
+        val occupation = Occupation(mapOf(nielsen to greenroom))
+        val expectedError = CheckInError("Donald can not be checked into room 1")
+        assertThat(occupation.checkin(donald, greenroom), equalTo(expectedError.asFailure()))
+    }
 }
 
 data class Person(val name: String)
@@ -111,7 +119,9 @@ data class PersonWasCheckIn(val jim: Person, val room: Room)
 
 data class Occupation(val personRoRooms: Map<Person, Room>) {
     fun checkin(person: Person, room:Room): Result4k<PersonWasCheckIn, CheckInError> {
-        if (personRoRooms.containsKey(person)) {
+        val roomIsFull = personRoRooms.containsValue(room)
+        val personIsInRoom = personRoRooms.containsKey(person)
+        if (personIsInRoom || roomIsFull) {
             return CheckInError("${person.name} can not be checked into room ${room.roomNumber}").asFailure()
         }
         return PersonWasCheckIn(person, room).asSuccess()
