@@ -79,6 +79,30 @@ class BookARoomCommandTest {
     }
 }
 
+class OccupationTest {
+
+    @Test
+    fun `person can not be checked in for two room`() {
+        val dirk = Person("Dirk")
+        val room1 = Room(1, RoomType.Single)
+        val room2 = Room(2, RoomType.Single)
+        val occupation = Occupation(
+            mapOf(dirk to room1)
+        )
+        val expectedError = CheckInError("Dirk can not be checked into room 2")
+        assertThat(occupation.checkin(dirk, room2), equalTo(expectedError))
+    }
+}
+
+data class Person(val name: String)
+data class CheckInError(val message: String)
+data class Occupation(val rooms: Map<Person, Room>) {
+    fun checkin(person: Person, room:Room): CheckInError{
+        return CheckInError("${person.name} can not be checked into room ${room.roomNumber}")
+    }
+}
+
+
 class BookARoomCommand(val repo: BookingRepository) {
     fun execute(someDate: LocalDate) {
         val availableRooms = repo.availableRooms(someDate)
